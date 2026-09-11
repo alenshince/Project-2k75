@@ -1,0 +1,55 @@
+/* ==========================================================================
+   PROJECT 2K75 - APPLICATION SHELL STYLES (App.css)
+   ========================================================================== */
+
+/* 1. Global Reset of Vite Starter Template Constraints */
+#root {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  max-width: 100% !important;
+  text-align: left;
+  overflow: hidden;
+  position: relative;
+  background-color: #000000;
+}
+
+/* 2. Global Viewport Layering Rules */
+.app-container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 3. Three.js WebGL Viewport Layer */
+.webgl-canvas-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+}
+
+/* 4. HUD / UI Overlay Protection Layer */
+.hud-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* 5. Re-enable Pointer Interaction for Interactive Buttons & Consoles */
+.interactive-element,
+.hud-layer button,
+.hud-layer input,
+.hud-layer textarea {
+  pointer-events: auto;
+}

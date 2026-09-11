@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ==========================================================================
+   1. ROOT VIEWPORT & RESET
+   Locks the app to full screen, prevents scrolling, and ensures WebGL scales
+   ========================================================================== */
+html,
+body,
+#root {
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background-color: #000000;
+  color: #f8fafc;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+/* ==========================================================================
+   2. THREE.JS CANVAS STYLING
+   Prevents canvas layout distortion and pointer event interference
+   ========================================================================== */
+canvas {
+  display: block;
+  width: 100vw !important;
+  height: 100vh !important;
+  touch-action: none;
+}
+
+/* ==========================================================================
+   3. SCI-FI COCKPIT HUD & ARCHIVE SCROLLBARS
+   ========================================================================== */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(2, 6, 23, 0.85);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 229, 255, 0.35);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 229, 255, 0.7);
+}
+
+/* ==========================================================================
+   4. TACTICAL HUD GLOWS & SCANLINE EFFECTS
+   ========================================================================== */
+/* Subtle CRT scanline texture */
+.crt-scanlines {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.25) 50%
+  ),
+  linear-gradient(
+    90deg,
+    rgba(0, 229, 255, 0.02),
+    rgba(0, 100, 255, 0.01),
+    rgba(0, 229, 255, 0.02)
+  );
+  background-size: 100% 3px, 6px 100%;
+  pointer-events: none;
+}
+
+/* Glowing cyan border utilities */
+.border-glow-cyan {
+  box-shadow: 0 0 15px rgba(0, 229, 255, 0.3), inset 0 0 10px rgba(0, 229, 255, 0.1);
+}
+
+.border-glow-amber {
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.3), inset 0 0 10px rgba(245, 158, 11, 0.1);
+}
+
+.border-glow-rose {
+  box-shadow: 0 0 20px rgba(244, 63, 94, 0.4), inset 0 0 12px rgba(244, 63, 94, 0.15);
+}
