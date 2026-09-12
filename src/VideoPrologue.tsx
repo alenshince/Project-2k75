@@ -1,8 +1,10 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { audioSynth } from './audioSynthesizer';
 
-export interface VideoPrologueProps {
+interface VideoPrologueProps {
+  /** Callback fired when video finishes or when skipped by the player */
   onComplete: () => void;
+  /** Video file path relative to public/ */
   videoSrc?: string;
 }
 
@@ -10,109 +12,193 @@ export const VideoPrologue: React.FC<VideoPrologueProps> = ({
   onComplete,
   videoSrc = '/prologue.mp4',
 }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [hasStarted, setHasStarted] = useState<boolean>(false);
-  const [hasError, setHasError] = useState<boolean>(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [requiresUserInteraction, setRequiresUserInteraction] = useState(false);
 
-  // Transition straight into the 3D globe cockpit
-  const handleFinish = () => {
-    if (videoRef.current) {
-      videoRef.current.pause();
+  // Handle ambient drone audio lifecycle and keyboard skip
+  useEffect(() => {
+    try {
+      audioSynth.startAmbientDrone();
+    } catch {
+      // Audio safety guard
     }
-    audioSynth.startAmbientDrone();
-    audioSynth.playTelemetryPing();
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === 'Escape') {
+        handleFinish();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      try {
+        audioSynth.stopAmbientDrone();
+      } catch {
+        // Audio safety guard
+      }
+    };
+  }, []);
+
+  // Autoplay handler with browser audio safety fallback
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          setIsPlaying(true);
+          setRequiresUserInteraction(false);
+        })
+        .catch(() => {
+          // Browser blocked unmuted autoplay
+          setRequiresUserInteraction(true);
+        });
+    }
+  }, []);
+
+  const handleFinish = () => {
+    try {
+      audioSynth.stopAmbientDrone();
+      audioSynth.playTelemetryPing();
+    } catch {
+      // Audio safety guard
+    }
     onComplete();
   };
 
-  // Trigger video playback with explicit user gesture
-  const handleStartPlayback = () => {
-    setHasStarted(true);
-    if (videoRef.current) {
-      videoRef.current.muted = false;
-      videoRef.current
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch((err) => {
-          console.warn('Playback error or browser autoplay policy restriction:', err);
-          if (videoRef.current) {
-            videoRef.current.muted = true;
-            videoRef.current.play().catch(() => setHasError(true));
-          }
-        });
+  const handleManualStart = () => {
+    const video = videoRef.current;
+    if (video) {
+      video.play().then(() => {
+        setIsPlaying(true);
+        setRequiresUserInteraction(false);
+      });
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black flex items-center justify-center select-none font-mono text-white">
-      {/* 1. Launch Gate / Missing Video Fallback Card */}
-      {(!hasStarted || hasError) && (
-        <div className="relative z-20 flex flex-col items-center gap-5 p-8 bg-slate-950/95 border border-cyan-900/60 rounded-lg shadow-[0_0_50px_rgba(6,182,212,0.15)] text-center max-w-lg mx-4">
-          <div className="flex items-center gap-2 text-cyan-400 text-xs tracking-widest uppercase">
-            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-            <span>Mission Transmission // Boot Phase</span>
-          </div>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 1000000,
+        backgroundColor: '#000000',
+        fontFamily: "'Courier New', Courier, monospace",
+        overflow: 'hidden',
+      }}
+    >
+      <style>{`
+        @keyframes pulse-btn {
+          0%, 100% { box-shadow: 0 0 15px rgba(0, 229, 255, 0.3); }
+          50% { box-shadow: 0 0 30px rgba(0, 229, 255, 0.7); }
+        }
+        .skip-button {
+          animation: pulse-btn 2s infinite ease-in-out;
+        }
+        .skip-button:hover {
+          background: #00e5ff !important;
+          color: #000000 !important;
+        }
+      `}</style>
 
-          {hasError ? (
-            <div className="text-xs text-amber-300/90 leading-relaxed bg-amber-950/30 p-3 rounded border border-amber-800/40">
-              Note: <code className="text-white font-mono">{videoSrc}</code> is not in your <code className="text-white font-mono">public/</code> directory yet. You can bypass this and explore the 3D globe immediately.
-            </div>
-          ) : (
-            <p className="text-xs text-slate-400 leading-relaxed">
-              PROJECT 2K75 neural stream prepared. Click below to begin video transmission or jump directly into the orbital simulator.
-            </p>
-          )}
-
-          <div className="flex items-center gap-3 w-full justify-center pt-2">
-            {!hasError && (
-              <button
-                type="button"
-                onClick={handleStartPlayback}
-                className="px-5 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 font-bold text-xs rounded tracking-widest transition-all shadow-[0_0_20px_rgba(6,182,212,0.4)] cursor-pointer"
-              >
-                PLAY VIDEO &rarr;
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={handleFinish}
-              className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 border border-cyan-800/70 text-cyan-300 font-bold text-xs rounded tracking-widest transition-all cursor-pointer"
-            >
-              LAUNCH SIMULATOR &rarr;
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* 2. Fullscreen Video Player Element */}
+      {/* Main Fullscreen Video Stream */}
       <video
         ref={videoRef}
         src={videoSrc}
         onEnded={handleFinish}
-        onError={() => setHasError(true)}
         playsInline
-        className={`w-full h-full object-cover transition-opacity duration-700 ${
-          hasStarted && isPlaying && !hasError ? 'opacity-100' : 'opacity-0'
-        }`}
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          display: 'block',
+        }}
       />
 
-      {/* 3. CRT Scanline Vignette Overlay */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_40%,rgba(0,0,0,0.85)_100%)]" />
+      {/* Top Banner Indicator */}
+      <div
+        style={{
+          position: 'absolute',
+          top: '24px',
+          left: '24px',
+          color: '#00e5ff',
+          fontSize: '11px',
+          letterSpacing: '2px',
+          background: 'rgba(2, 6, 23, 0.75)',
+          padding: '6px 14px',
+          border: '1px solid rgba(0, 229, 255, 0.4)',
+          borderRadius: '2px',
+          pointerEvents: 'none',
+        }}
+      >
+        TRANSMISSION ARCHIVE // 2K75 MISSION PROLOGUE
+      </div>
 
-      {/* 4. Skip Transmission Button */}
-      {hasStarted && !hasError && (
-        <div className="absolute bottom-8 right-8 z-30 pointer-events-auto">
-          <button
-            type="button"
-            onClick={handleFinish}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-950/80 hover:bg-slate-900 border border-cyan-900/60 hover:border-cyan-500/80 rounded text-xs text-cyan-400 tracking-wider transition-all cursor-pointer shadow-lg"
+      {/* Interactive Autoplay Fallback Prompt */}
+      {requiresUserInteraction && !isPlaying && (
+        <div
+          onClick={handleManualStart}
+          style={{
+            position: 'absolute',
+            inset: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            cursor: 'pointer',
+            zIndex: 10,
+          }}
+        >
+          <div
+            style={{
+              textAlign: 'center',
+              border: '1px solid #00e5ff',
+              padding: '24px 36px',
+              background: 'rgba(3, 20, 46, 0.95)',
+              boxShadow: '0 0 35px rgba(0, 229, 255, 0.4)',
+            }}
           >
-            <span>[SKIP TRANSMISSION]</span>
-            <span className="text-[10px] text-slate-500">&rarr;</span>
-          </button>
+            <div style={{ color: '#00e5ff', fontSize: '14px', letterSpacing: '2px', marginBottom: '8px' }}>
+              AUDIO/VIDEO CHANNEL READY
+            </div>
+            <div style={{ color: '#f8fafc', fontSize: '11px', letterSpacing: '1px' }}>
+              CLICK ANYWHERE TO ENGAGE NEURAL TRANSMISSION
+            </div>
+          </div>
         </div>
       )}
+
+      {/* Skip Button */}
+      <button
+        type="button"
+        className="skip-button"
+        onClick={handleFinish}
+        style={{
+          position: 'absolute',
+          bottom: '32px',
+          right: '32px',
+          background: 'rgba(2, 6, 23, 0.85)',
+          border: '1px solid #00e5ff',
+          color: '#00e5ff',
+          padding: '10px 22px',
+          fontSize: '11px',
+          fontWeight: 'bold',
+          letterSpacing: '2px',
+          cursor: 'pointer',
+          outline: 'none',
+          borderRadius: '2px',
+          transition: 'all 0.2s ease',
+          zIndex: 10,
+        }}
+      >
+        SKIP PROLOGUE [ENTER]
+      </button>
     </div>
   );
 };

@@ -9,13 +9,17 @@ import { EyeBlinkOverlay } from './EyeBlinkOverlay';
 import { PlanetDiscoveryToast } from './PlanetDiscoveryToast';
 import { ArchivalCodex } from './ArchivalCodex';
 import { GlitchAnomalyFX } from './GlitchAnomalyFX';
-import { CitadelCutscene } from './CitadelCutscene';
+import { VideoPrologue } from './VideoPrologue';
+import { EndingVideoCutscene } from './EndingVideoCutscene';
 import { audioSynth } from './audioSynthesizer';
 import { planetCatalog as fullCatalog } from './planetCatalog';
 import type { PlanetDossier, ViewportMode } from './types';
 import type { ScriptPhase } from './narrativeScriptEngine';
 
 export const App: React.FC = () => {
+  // 0. Prologue overlay state (starts active on initial page load)
+  const [isPrologueActive, setIsPrologueActive] = useState<boolean>(true);
+
   // 1. Core catalog state containing all 75 planetary dossiers
   const [catalog, setCatalog] = useState<PlanetDossier[]>(fullCatalog);
   const [selectedPlanetIndex, setSelectedPlanetIndex] = useState<number>(0);
@@ -41,9 +45,12 @@ export const App: React.FC = () => {
   // AUTOMATIC 5-SECOND EXPEDITION DISCOVERY LOOP (#11 through #75)
   // =========================================================================
   useEffect(() => {
+    // Discovery ticker runs only after the prologue is dismissed
+    if (isPrologueActive) return;
+
     const discoveryInterval = window.setInterval(() => {
       setCatalog((prevCatalog) => {
-        // Locate the next undiscovered planet in catalog sequence
+        // Locate the first unrevealed planet in sequence
         const nextIndex = prevCatalog.findIndex((planet) => !planet.isDiscovered);
 
         if (nextIndex === -1) {
@@ -59,7 +66,7 @@ export const App: React.FC = () => {
         try {
           audioSynth.playTelemetryPing();
         } catch {
-          // Guard for browser audio autoplay restrictions
+          // Autoplay protection fallback
         }
 
         return prevCatalog.map((planet, idx) =>
@@ -69,7 +76,7 @@ export const App: React.FC = () => {
     }, 5000);
 
     return () => window.clearInterval(discoveryInterval);
-  }, []);
+  }, [isPrologueActive]);
 
   // =========================================================================
   // MULTI-SPECTRUM SCANNING & DOOMSNEXUS CRASH SEQUENCE
@@ -85,7 +92,7 @@ export const App: React.FC = () => {
         const next = prev + 3.0;
         audioSynth.playScanSweep(next);
 
-        // DOOMSNEXUS CRASH: Hard break at 40% scan progress
+        // DOOMSNEXUS CRASH: Abrupt failure at 40% scan progress
         if (activeDossier.designation === 'DOOMSNEXUS' && next >= 40) {
           if (captureTimerRef.current) {
             clearInterval(captureTimerRef.current);
@@ -138,7 +145,7 @@ export const App: React.FC = () => {
     }
   }, [activeDossier]);
 
-  // Cancel any active scan on planet selection change
+  // Cancel active scan on planet change
   useEffect(() => {
     handleCancelCapture();
   }, [selectedPlanetIndex, handleCancelCapture]);
@@ -261,7 +268,7 @@ export const App: React.FC = () => {
   const isAwakened = isDoomsnexus && (isCapturing || scriptPhase === 'CRITICAL_ENTITY_75');
 
   const planetPrimaryColor = isAwakened
-    ? '#7f1d1d' // Hostile crimson during scan/crash
+    ? '#7f1d1d' // Hostile red during scan/crash
     : activeDossier.visuals?.palette?.primaryColor || '#005F73';
 
   const planetAtmosphereColor = isAwakened
@@ -286,11 +293,19 @@ export const App: React.FC = () => {
         padding: 0,
       }}
     >
+      {/* 0. CINEMATIC VIDEO PROLOGUE */}
+      {isPrologueActive && (
+        <VideoPrologue
+          videoSrc="/prologue.mp4"
+          onComplete={() => setIsPrologueActive(false)}
+        />
+      )}
+
       {/* 1. FIRST-PERSON EYE BLINK / WAKE-UP OVERLAY */}
-      <EyeBlinkOverlay wakeUpOnMount={true} />
+      {!isPrologueActive && <EyeBlinkOverlay wakeUpOnMount={true} />}
 
       {/* 2. 5-SECOND INCOMING TELEMETRY TOAST */}
-      {scriptPhase !== 'CRITICAL_ENTITY_75' && (
+      {!isPrologueActive && scriptPhase !== 'CRITICAL_ENTITY_75' && (
         <PlanetDiscoveryToast
           latestPlanet={recentlyFoundPlanet}
           onNavigate={(index: number) => setSelectedPlanetIndex(index)}
@@ -342,8 +357,8 @@ export const App: React.FC = () => {
         </Canvas>
       </div>
 
-      {/* 4. TOP-LEFT PLANET SELECTOR HUD (Hidden during crash) */}
-      {scriptPhase !== 'CRITICAL_ENTITY_75' && (
+      {/* 4. TOP-LEFT PLANET SELECTOR HUD (Hidden during prologue & crash) */}
+      {!isPrologueActive && scriptPhase !== 'CRITICAL_ENTITY_75' && (
         <PlanetSelectorHUD
           catalog={catalog}
           selectedIndex={selectedPlanetIndex}
@@ -351,8 +366,8 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* 5. HOLOGRAPHIC RECONNAISSANCE SCANNER RETICLE (Hidden during crash) */}
-      {scriptPhase !== 'CRITICAL_ENTITY_75' && (
+      {/* 5. HOLOGRAPHIC RECON SCANNER RETICLE (Hidden during prologue & crash) */}
+      {!isPrologueActive && scriptPhase !== 'CRITICAL_ENTITY_75' && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none' }}>
           <ReconCrosshair
             anomalyCoords={{ theta: anomalyCoordsTuple[0], phi: anomalyCoordsTuple[1] }}
@@ -363,8 +378,8 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* 6. TACTICAL HUD PANELS & TELEMETRY (Hidden during crash) */}
-      {scriptPhase !== 'CRITICAL_ENTITY_75' && (
+      {/* 6. TACTICAL HUD PANELS & TELEMETRY (Hidden during prologue & crash) */}
+      {!isPrologueActive && scriptPhase !== 'CRITICAL_ENTITY_75' && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 25, pointerEvents: 'none' }}>
           <ScriptTerminalHUD
             phase={scriptPhase}
@@ -402,7 +417,7 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* 8. TOP-MOST CLIMAX CRASH SCREEN (Takes over screen on failure) */}
+      {/* 8. TOP-MOST CLIMAX CRASH SCREEN (Z-INDEX 999999 + AUDIO BURST) */}
       {scriptPhase === 'CRITICAL_ENTITY_75' && !isRecovering && (
         <GlitchAnomalyFX
           active={true}
@@ -413,17 +428,16 @@ export const App: React.FC = () => {
         />
       )}
 
-      {/* 9. CITADEL RECOVERY CUTSCENE */}
+      {/* 9. ENDING VIDEO CUTSCENE */}
       {isRecovering && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1000010, pointerEvents: 'auto' }}>
-          <CitadelCutscene
-            onRestart={() => {
-              setIsRecovering(false);
-              setSelectedPlanetIndex(0);
-              setScriptPhase('DISCOVERY_01');
-            }}
-          />
-        </div>
+        <EndingVideoCutscene
+          videoSrc="/ending.mp4"
+          onRestart={() => {
+            setIsRecovering(false);
+            setSelectedPlanetIndex(0);
+            setScriptPhase('DISCOVERY_01');
+          }}
+        />
       )}
     </div>
   );
