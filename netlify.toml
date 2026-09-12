@@ -1,8 +1,11 @@
 [build]
+  # Base directory where frontend package.json lives
+  base = "frontend"
+
   # The command Vite uses to compile TypeScript/JSX into production assets
   command = "npm run build"
 
-  # The output folder Vite generates
+  # The output folder Vite generates relative to base directory
   publish = "dist"
 
 # Ensures all URL routes redirect back to index.html for Single Page Applications (SPA)
