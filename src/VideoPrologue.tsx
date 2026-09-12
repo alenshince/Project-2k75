@@ -10,7 +10,7 @@ interface VideoPrologueProps {
 
 export const VideoPrologue: React.FC<VideoPrologueProps> = ({
   onComplete,
-  videoSrc = '/prologue.mp4',
+  videoSrc = `${import.meta.env.BASE_URL}prologue.mp4`,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -112,6 +112,10 @@ export const VideoPrologue: React.FC<VideoPrologueProps> = ({
         ref={videoRef}
         src={videoSrc}
         onEnded={handleFinish}
+        onError={() => {
+          console.warn('Prologue video could not be loaded or played, bypassing directly to HUD');
+          handleFinish();
+        }}
         playsInline
         style={{
           width: '100%',

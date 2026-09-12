@@ -9,7 +9,7 @@ export interface EndingVideoCutsceneProps {
 
 export const EndingVideoCutscene: React.FC<EndingVideoCutsceneProps> = ({
   onRestart,
-  videoSrc = '/ending.mp4',
+  videoSrc = `${import.meta.env.BASE_URL}ending.mp4`,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [hasAutoplayFailed, setHasAutoplayFailed] = useState<boolean>(false);
@@ -67,6 +67,10 @@ export const EndingVideoCutscene: React.FC<EndingVideoCutsceneProps> = ({
         ref={videoRef}
         src={videoSrc}
         onEnded={onRestart}
+        onError={() => {
+          console.warn('Ending video failed to load, returning to survey hub');
+          onRestart();
+        }}
         playsInline
         autoPlay
         controls={false}

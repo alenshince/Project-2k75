@@ -296,7 +296,7 @@ export const App: React.FC = () => {
       {/* 0. CINEMATIC VIDEO PROLOGUE */}
       {isPrologueActive && (
         <VideoPrologue
-          videoSrc="/prologue.mp4"
+          videoSrc={`${import.meta.env.BASE_URL}prologue.mp4`}
           onComplete={() => setIsPrologueActive(false)}
         />
       )}
@@ -404,7 +404,7 @@ export const App: React.FC = () => {
         onSelectPlanet={(planetOrIndex: any) => {
           const nextIndex =
             typeof planetOrIndex === 'number'
-              ? planetOrIndex
+              ? catalog.findIndex((p, idx) => p.catalogIndex === planetOrIndex || idx === planetOrIndex)
               : typeof planetOrIndex?.catalogIndex === 'number'
               ? catalog.findIndex((p) => p.catalogIndex === planetOrIndex.catalogIndex)
               : 0;
@@ -431,7 +431,7 @@ export const App: React.FC = () => {
       {/* 9. ENDING VIDEO CUTSCENE */}
       {isRecovering && (
         <EndingVideoCutscene
-          videoSrc="/ending.mp4"
+          videoSrc={`${import.meta.env.BASE_URL}ending.mp4`}
           onRestart={() => {
             setIsRecovering(false);
             setSelectedPlanetIndex(0);

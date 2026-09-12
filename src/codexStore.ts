@@ -52,10 +52,12 @@ export const getAllCapturedDossiers = (): PlanetDossier[] => {
   const list: PlanetDossier[] = [];
   for (let i = 1; i <= 75; i++) {
     const dossier = getPlanetDossier(i);
-    list.push({
-      ...dossier,
-      isCaptured: capturedIndices.has(i),
-    });
+    if (dossier) {
+      list.push({
+        ...dossier,
+        isCaptured: capturedIndices.has(i),
+      });
+    }
   }
   return list;
 };

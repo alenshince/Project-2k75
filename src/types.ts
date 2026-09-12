@@ -81,3 +81,18 @@ export type ScriptPhase =
   | 'CRITICAL_ENTITY_75'
   | 'ARCHIVE_COMPLETE'
   | (string & {});
+
+export interface TelemetryReading {
+  surfaceTempKelvin: number;
+  atmosphericPressureBar: number;
+  tachyonResonance: number;
+  ozonePrime: number;
+  [key: string]: any;
+}
+
+export interface ClassificationResult {
+  classification: string;
+  habitabilityPercentage: number;
+  hazardLevel: 'MINIMAL' | 'MODERATE' | 'EXTREME' | string;
+  description: string;
+}
