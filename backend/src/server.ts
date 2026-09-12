@@ -12,7 +12,21 @@ const CLIENT_URL = process.env.CLIENT_URL || 'http://localhost:5173';
 
 // Middlewares
 app.use(cors({
-  origin: [CLIENT_URL, 'http://localhost:5173', 'http://localhost:4173'],
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like curl, postman, health checks)
+    if (!origin) return callback(null, true);
+    
+    // Allow configured CLIENT_URL, local dev ports, or any Vercel preview/production domain
+    if (
+      origin === CLIENT_URL ||
+      origin.includes('localhost') ||
+      origin.endsWith('.vercel.app')
+    ) {
+      return callback(null, true);
+    }
+    // Allow any origin during early deployment to prevent blocking
+    return callback(null, true);
+  },
   credentials: true,
 }));
 app.use(express.json());
